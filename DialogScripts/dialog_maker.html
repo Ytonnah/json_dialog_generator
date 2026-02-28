@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Scene Builder Pro</title>
+<link rel="stylesheet" href="css.css">
+</head>
+<body>
+<h2 id="builder-title" class="builder-title">Scene Builder Pro</h2>
+<div id="scene-builder" class="scene-builder">
+
+<div id="input_section">
+  <div id="dialog-section" class="section dialog-section">
+    <h3>Add Dialog Block</h3>
+    <label for="type">Type</label>
+    <select id="type" class="select-type">
+      
+      <option value="dialog">Dialog</option>
+      <option value="narration">Narration</option>
+    </select>
+    <label for="char">Character</label>
+    <input id="char" class="input-char" placeholder="Character">
+    <div class="d-flex-row"></div>
+    <label for="emotion">Emotion</label>
+    <select id="emotion" class="select-emotion">
+      <option>neutral</option>
+      <option>happy</option>
+      <option>sad</option>
+      <option>angry</option>
+      <option>blush</option>
+    </select>
+    <label for="effect">Portrait Effect</label>
+    <input id="effect" class="input-effect" placeholder="Portrait Effect (bounce, shake)">
+    <div class="d-flex-row">
+      <label for="voice">Voice</label>
+      <input id="voice" class="input-voice" placeholder="Voice (optional)">
+      <label for="sfx">SFX</label>
+      <input id="sfx" class="input-sfx" placeholder="SFX (optional)">
+    </div>
+    
+    <label for="text">Dialog Text</label>
+    <textarea id="text" class="textarea-text" placeholder="Dialog or Narration"></textarea>
+    <h4>Options (Optional, nested in this dialog)</h4>
+    <div id="dialogOptionsList" class="options-list"></div>
+    <!-- <button id="add-dialog-option-btn" class="btn-add-option" onclick="addDialogOptionField()">Add Option to Dialog</button> -->
+    <!-- <button id="add-dialog-btn" class="btn-add-dialog" onclick="addDialog()">Add Dialog Block</button> -->
+    <button type="button" id="add-dialog-option-btn" class="btn-add-option">Add Option to Dialog</button>
+    <button type="button" id="add-dialog-btn" class="btn-add-dialog">Add Dialog Block</button>
+  </div>
+  <div class="d-flex">
+    <div id="scene-transition-section" class="section scene-transition-section">
+      <h3>Add Scene Transition</h3>
+      <label for="scenePrompt">Transition Narration</label>
+      <input id="scenePrompt" class="input-scene-prompt" placeholder="Transition Narration">
+      <label for="sceneTarget">Target Scene</label>
+      <input id="sceneTarget" class="input-scene-target" placeholder="Target Scene">
+      <!-- <button id="add-scene-transition-btn" class="btn-add-scene-transition" onclick="addSceneTransition()">Add Scene Transition</button> -->
+      <button type="button" id="add-scene-transition-btn" class="btn-add-scene-transition">Add Scene Transition</button>
+    </div>
+    <div id="export-import-section" class="section export-import-section">
+      <button type="button" id="export-btn" class="btn-export">Export JSON</button>
+    <input type="file" id="import-file" class="import-file">
+  </div>
+  </div>
+  
+
+  <hr>
+  
+</div>
+<div id="out-cont">
+  <div id="output" class="maj_sections">
+    <div id="flow-section" class="section flow-section">
+      <h3>Flow</h3>
+      <div id="flow" class="flow"></div>
+    </div>
+
+    <div id="output-section" class="section output-section">
+      <h3>Output</h3>
+      <pre id="out" class="output"></pre>
+    </div>
+
+  </div>
+  
+</div>
+
+</div>
+<script>
+/* =============================
+   STATE
+============================= */
+let scene = {
+  SceneName: "new_scene",
+  Start: { Background: "", Music: "" },
+  Flow: []
+};
+
+/* =============================
+   DOM HELPERS
+============================= */
+const $ = (id) => document.getElementById(id);
+const create = (tag, className) => {
+  const el = document.createElement(tag);
+  if (className) el.className = className;
+  return el;
+};
+
+function resetInputs(elements) {
+  elements.forEach(el => el && (el.value = ""));
+}
+
+/* =============================
+   TYPE VISIBILITY
+============================= */
+function handleTypeVisibility() {
+  const isNarration = $("type").value === "narration";
+  ["char", "emotion", "effect"].forEach(id => {
+    $(id).style.display = isNarration ? "none" : "";
+    document.querySelector(`label[for='${id}']`).style.display =
+      isNarration ? "none" : "";
+  });
+}
+
+/* =============================
+   OPTIONS
+============================= */
+function addDialogOptionField() {
+  const container = $("dialogOptionsList");
+  const idx = container.children.length;
+
+  const div = create("div", "option-field");
+  div.innerHTML = `
+    <div>
+      Option Text:
+      <input id="dialogOptionText${idx}" class="option-text">
+      Callback:
+      <input id="dialogOptionCallback${idx}" class="option-callback">
+    </div>
+  `;
+
+  container.appendChild(div);
+}
+
+function collectOptions() {
+  const container = $("dialogOptionsList");
+  const options = [];
+
+  [...container.children].forEach((_, i) => {
+    const textEl = $(`dialogOptionText${i}`);
+    const cbEl = $(`dialogOptionCallback${i}`);
+
+    if (!textEl || !textEl.value.trim()) return;
+
+    options.push({
+      Text: textEl.value.trim(),
+      Callback: cbEl.value.trim()
+        ? [{
+            type: "dialog",
+            Character: "",
+            Text: cbEl.value.trim()
+          }]
+        : []
+    });
+  });
+
+  return options;
+}
+
+/* =============================
+   DIALOG
+============================= */
+function addDialog() {
+  const type = $("type").value;
+  const options = collectOptions();
+
+  const block = {
+    type,
+    Text: $("text").value.trim(),
+    Audio: {
+      Voice: $("voice").value.trim(),
+      SFX: $("sfx").value.trim()
+    },
+    Options: options
+  };
+
+  if (type === "dialog") {
+    block.Character = $("char").value.trim();
+    block.Portrait = {
+      Emotion: $("emotion").value,
+      Effect: $("effect").value.trim()
+    };
+  }
+
+  scene.Flow.push(block);
+
+  resetInputs([
+    $("char"),
+    $("text"),
+    $("emotion"),
+    $("effect"),
+    $("voice"),
+    $("sfx")
+  ]);
+  $("dialogOptionsList").innerHTML = "";
+
+  render();
+}
+
+/* =============================
+   SCENE TRANSITION
+============================= */
+function addSceneTransition() {
+  scene.Flow.push({
+    type: "scene_transition",
+    Prompt: { Narration: $("scenePrompt").value.trim() },
+    Target: $("sceneTarget").value.trim()
+  });
+
+  resetInputs([$ ("scenePrompt"), $("sceneTarget")]);
+  render();
+}
+
+/* =============================
+   IMPORT / EXPORT
+============================= */
+function exportJSON() {
+  const blob = new Blob(
+    [JSON.stringify(scene, null, 2)],
+    { type: "application/json" }
+  );
+
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "scene.json";
+  a.click();
+}
+
+function importJSON(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (x) => {
+    scene = JSON.parse(x.target.result);
+    render();
+  };
+  reader.readAsText(file);
+}
+
+/* =============================
+   RENDER
+============================= */
+function render() {
+  const flowDiv = $("flow");
+  flowDiv.innerHTML = "";
+
+  scene.Flow.forEach((item, i) => {
+    const card = create("div", "card");
+    card.id = `flow-item-${i}`;
+
+    card.innerHTML = `
+      <b>${item.type}</b>
+      ${item.Character ? `: ${item.Character}` : ""}
+      ${item.Text ? ` - ${item.Text}` : ""}
+    `;
+
+    if (item.Options?.length) {
+      const ul = create("ul");
+      item.Options.forEach(opt => {
+        const li = create("li");
+        li.textContent = `${opt.Text} → ${opt.Callback.map(c => c.Text).join(", ")}`;
+        ul.appendChild(li);
+      });
+      card.appendChild(ul);
+    }
+
+    flowDiv.appendChild(card);
+  });
+
+  $("out").textContent = JSON.stringify(scene, null, 2);
+}
+
+/* =============================
+   EVENT LISTENERS
+============================= */
+document.addEventListener("DOMContentLoaded", () => {
+  $("type").addEventListener("change", handleTypeVisibility);
+  $("add-dialog-btn").addEventListener("click", addDialog);
+  $("add-dialog-option-btn").addEventListener("click", addDialogOptionField);
+  $("add-scene-transition-btn").addEventListener("click", addSceneTransition);
+  $("export-btn").addEventListener("click", exportJSON);
+  $("import-file").addEventListener("change", importJSON);
+
+  render();
+});
+</script>
+
+</body>
+</html>

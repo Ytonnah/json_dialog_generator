@@ -1,0 +1,27 @@
+[
+	{
+	"type": "dialog",
+	"CharacterName": "Naori",
+	"DialogFlush": "Hi, I am Naori",
+	"Emotion": "happy",
+	"Animate":"bounce",
+	"AnimDuration":1
+	},
+	
+	{
+	"type": "dialog",
+	"CharacterName": "Naori",
+	"DialogFlush": "your new companion",
+	"Emotion": "neutral",
+	"Animate":"bounce",
+	"AnimDuration":1
+	},
+	{
+	"type": "dialog",
+	"CharacterName": "Naori",
+	"DialogFlush": "ha?!",
+	"Emotion": "embarrassed",
+	"Animate":"bounce",
+	"AnimDuration":1
+	},
+]
